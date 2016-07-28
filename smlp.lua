@@ -13,7 +13,7 @@ function gradUpdate(mlpin, x, y, criterionin, learningRate)
 	mlpin:maxParamNorm(-1)
 end
 
-function evaDev(mlpin, x, y, criterionin)
+function evaDev(mlpin, x, criterionin)
 	local tmod=mlpin:clone()
 	tmod:evaluate()
 	local bsiz=512
@@ -22,13 +22,16 @@ function evaDev(mlpin, x, y, criterionin)
 	local serr=0
 	local eind=#x
 	local cfwd=1
+	local comv
 	while ind+bsiz<eind do
-		serr=serr+criterionin:forward(tmod:forward({{x[1][1]:narrow(1,ind,bsiz),x[1][2]:narrow(1,ind,bsiz)},{x[2][1]:narrow(1,ind,bsiz),x[2][2]:narrow(1,ind,bsiz)}}), tart)
+		comv=x[1]:narrow(1,ind,bsiz)
+		serr=serr+criterionin:forward(tmod:forward({{comv,x[2]:narrow(1,ind,bsiz)},{comv,x[3]:narrow(1,ind,bsiz)}}), tart)
 		ind=ind+bsiz
 		cfwd=cfwd+1
 	end
 	local exlen=eind-ind+1
-	serr=serr+criterionin:forward(tmod:forward({{x[1][1]:narrow(1,ind,exlen),x[1][2]:narrow(1,ind,exlen)},{x[2][1]:narrow(1,ind,exlen),x[2][2]:narrow(1,ind,exlen)}}), torch.Tensor(exlen):fill(1))
+	comv=x[1]:narrow(1,ind,exlen)
+	serr=serr+criterionin:forward(tmod:forward({{comv,x[2]:narrow(1,ind,exlen)},{comv,x[3]:narrow(1,ind,exlen)}}), torch.Tensor(exlen):fill(1))
 	return serr/cfwd
 end
 
@@ -98,7 +101,7 @@ end
 function inirand(cyc)
 	cyc=cyc or 8
 	for i=1,cyc do
-		local sdata=math.random(cyc)
+		local sdata=math.random(nsam)
 	end
 end
 
@@ -121,7 +124,7 @@ end
 function loadDev(fposi,fneg)
 	local pm=loadObject(fposi)
 	local nm=loadObject(fneg)
-	return {{pm:select(2,1),pm:select(2,2)},{nm:select(2,1),nm:select(2,2)}},torch.Tensor(pm:size(1)):fill(1)
+	return {pm:select(2,1),pm:select(2,2),nm:select(2,2)}
 end
 
 function loadTrain(fposi,fneg)
@@ -143,7 +146,7 @@ nwvec=loadObject('datasrc/nrvec.asc')
 print("load training data")
 mword=loadTrain('datasrc/train.asc','datasrc/traineg.asc')
 
-devin,devt=loadDev('datasrc/dev.asc','datasrc/devneg.asc')
+devin=loadDev('datasrc/dev.asc','datasrc/devneg.asc')
 
 nsam=mword:size(1)
 
@@ -209,6 +212,7 @@ function train()
 	local epochs=1
 	local lr=modlr
 	inirand()
+	print("Init model Dev:"..evaDev(nnmod,devin,critmod))
 	collectgarbage()
 
 	print("start pre train")
@@ -239,7 +243,7 @@ function train()
 			end
 			local erate=sumErr/ieps
 			table.insert(crithis,erate)
-			local edevrate=evaDev(nnmod,devin,devt,critmod)
+			local edevrate=evaDev(nnmod,devin,critmod)
 			table.insert(cridev,edevrate)
 			print("epoch:"..tostring(epochs)..",lr:"..lr..",Tra:"..erate..",Dev:"..edevrate)
 			local modsavd=false
