@@ -4,6 +4,6 @@ sizvec=nwvec:size(2)
 
 mword=loadTrain('datasrc/traineg.asc')
 
-devin=loadDev('datasrc/testeg.asc')
+devin=loadDev('datasrc/deveg.asc')
 
 nsam=mword:size(1)
