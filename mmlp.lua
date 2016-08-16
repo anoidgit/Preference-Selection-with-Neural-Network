@@ -194,7 +194,7 @@ function train()
 	print("Init model Dev:"..evaDev(nnmod,devin,critmod))
 	collectgarbage()
 
-	print("starget pre train")
+	print("start pre train")
 	for tmpi=1,32 do
 		for tmpi=1,ieps do
 			input=getsample(batchsize)
