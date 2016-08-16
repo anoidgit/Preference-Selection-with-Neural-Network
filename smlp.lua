@@ -14,28 +14,27 @@ function gradUpdate(mlpin, x, y, criterionin, learningRate)
 end
 
 function evaDev(mlpin, x, criterionin)
-	local tmod=mlpin:clone()
-	tmod:evaluate()
-	local bsiz=512
-	local tart=torch.Tensor(bsiz):fill(1)
+	mlpin:evaluate()
 	local ind=1
 	local serr=0
 	local eind=#x
 	local cfwd=1
 	local comv
-	while ind+bsiz<eind do
-		comv=x[1]:narrow(1,ind,bsiz)
-		serr=serr+criterionin:forward(tmod:forward({{comv,x[2]:narrow(1,ind,bsiz)},{comv,x[3]:narrow(1,ind,bsiz)}}), tart)
-		ind=ind+bsiz
+	while ind+batchsize<eind do
+		comv=x[1]:narrow(1,ind,batchsize)
+		serr=serr+criterionin:forward(mlpin:forward({{comv,x[2]:narrow(1,ind,batchsize)},{comv,x[3]:narrow(1,ind,batchsize)}}), target)
+		ind=ind+batchsize
 		cfwd=cfwd+1
 	end
 	local exlen=eind-ind+1
 	comv=x[1]:narrow(1,ind,exlen)
-	serr=serr+criterionin:forward(tmod:forward({{comv,x[2]:narrow(1,ind,exlen)},{comv,x[3]:narrow(1,ind,exlen)}}), torch.Tensor(exlen):fill(1))
+	serr=serr+criterionin:forward(mlpin:forward({{comv,x[2]:narrow(1,ind,exlen)},{comv,x[3]:narrow(1,ind,exlen)}}), torch.Tensor(exlen):fill(1))
+	mlpin:training()
 	return serr/cfwd
 end
 
-function getresmodel(modelcap,scale,usegraph)
+--[[
+function getresmodel(modelcap,scale)
 	local rtm=nn.ConcatTable()
 	rtm:add(modelcap)
 	if not scale or scale==1 then
@@ -45,14 +44,7 @@ function getresmodel(modelcap,scale,usegraph)
 	else
 		rtm:add(nn.Sequential():add(nn.Identity()):add(scale))
 	end
-	local rsmod=nn.Sequential():add(rtm):add(nn.CAddTable())
-	if usegraph then
-		local input=nn.Identity()()
-		local output=rsmod(input)
-		return nn.gModule({input},{output})
-	else
-		return rsmod
-	end
+	return nn.Sequential():add(rtm):add(nn.CAddTable())
 end
 
 function getmaxout(inputs,outputs,nlinear)
@@ -82,7 +74,7 @@ function loadfbdseq(fname)
 	end
 	file:close()
 	return rs
-end
+end]]
 
 function getsample(batch)
 	local cotf={}
@@ -121,34 +113,20 @@ function saveObject(fname,objWrt)
 	file:close()
 end
 
-function loadDev(fposi,fneg)
+function loadDev(fposi)
 	local pm=loadObject(fposi)
-	local nm=loadObject(fneg)
-	return {pm:select(2,1),pm:select(2,2),nm:select(2,2)}
+	return {pm:select(2,1),pm:select(2,2),pm:select(2,3)}
 end
 
-function loadTrain(fposi,fneg)
-	local pm=loadObject(fposi)
-	local nm=loadObject(fneg)
-	return torch.cat(pm,nm:select(2,2))
+function loadTrain(ftrain)
+	return loadObject(ftrain)
 end
 
 print("load settings")
-batchsize=1024
-marguse=1
-ieps=256
-modlr=0.5
-sizvec=50
+require"conf"
 
-vwvec=loadObject('datasrc/vrvec.asc')
-nwvec=loadObject('datasrc/nrvec.asc')
-
-print("load training data")
-mword=loadTrain('datasrc/train.asc','datasrc/traineg.asc')
-
-devin=loadDev('datasrc/dev.asc','datasrc/devneg.asc')
-
-nsam=mword:size(1)
+print("load data")
+require "dloader"
 
 target=torch.Tensor(batchsize):fill(1)
 sumErr=0
@@ -163,14 +141,14 @@ mindeverrate=minerrate
 
 print("load packages")
 require "nn"
-require "nngraph"
+--require "nngraph"
 require "dpnn"
 require "vecLookup"
 require "gnuplot"
 
 function getnn()
-	local inputs = 100;
-	local HUs = 100;
+	local inputs = sizvec*2;
+	local HUs = inputs;
 	local outputs = 1;
 
 	local id2vec=nn.ParallelTable();
@@ -252,6 +230,9 @@ function train()
 				mindeverrate=edevrate
 				saveObject("srs/devnnmod"..storedevmini..".asc",nnmod)
 				storedevmini=storedevmini+1
+				if storedevmini>csave then
+					storedevmini=1
+				end
 				modsavd=true
 			end
 			if erate<minerrate then
@@ -261,6 +242,9 @@ function train()
 					print("new minimal error found,save model")
 					saveObject("srs/nnmod"..storemini..".asc",nnmod)
 					storemini=storemini+1
+					if storemini>csave then
+						storemini=1
+					end
 				end
 			else
 				if aminerr>=4 then
@@ -296,7 +280,7 @@ function train()
 		critensor=torch.Tensor()
 		critdev=torch.Tensor()
 
-		print("task finished!Minimal error rate:"..minerrate)
+		print("task finished!Minimal error rate:"..minerrate.."	"..mindeverrate)
 
 		print("wait for test, neural network saved at nnmod*.asc")
 
