@@ -77,32 +77,11 @@ function loadfbdseq(fname)
 end
 ]]
 
-function getsample(batch)
-	local cotf={}
-	local cotl={}
-	local wrtf={}
-	for i=1,batch do
-		local sdata=mword[math.random(nsam)]
-		table.insert(cotf,sdata[1])
-		table.insert(cotl,sdata[2])
-		table.insert(wrtf,sdata[3])
-	end
-	local comt=torch.Tensor(cotf)
-	return {{comt,torch.Tensor(cotl)},{comt,torch.Tensor(wrtf)}}
-end
-
 function inirand(cyc)
 	cyc=cyc or 8
 	for i=1,cyc do
 		local sdata=math.random(nsam)
 	end
-end
-
-function loadObject(fname)
-	local file=torch.DiskFile(fname)
-	local objRd=file:readObject()
-	file:close()
-	return objRd
 end
 
 function saveObject(fname,objWrt)
@@ -112,15 +91,6 @@ function saveObject(fname,objWrt)
 	local file=torch.DiskFile(fname,'w')
 	file:writeObject(objWrt)
 	file:close()
-end
-
-function loadDev(fposi)
-	local pm=loadObject(fposi)
-	return {pm:select(2,1),pm:select(2,2),pm:select(2,3)}
-end
-
-function loadTrain(ftrain)
-	return loadObject(ftrain)
 end
 
 print("load settings")
@@ -146,6 +116,12 @@ require "nn"
 require "dpnn"
 require "vecLookup"
 require "gnuplot"
+
+if usernd then
+	require "samplernd"
+else
+	require "sampler"
+end
 
 function getnn()
 	local inputs = sizvec*2;
