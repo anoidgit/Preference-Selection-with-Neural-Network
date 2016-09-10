@@ -24,3 +24,8 @@ devin=loadDev('datasrc/deveg.asc')
 
 nsam=mword:size(1)
 
+if usernd then
+	require "fbdloader"
+	fbdset=loadfbdseq('datasrc/fbd.txt')
+	cnoun=nwvec:size(1)-1
+end
