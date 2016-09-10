@@ -4,3 +4,7 @@ ieps=64
 modlr=0.5
 csave=3
 usernd=false
+warmcycle=32
+expdecaycycle=4
+gtraincycle=128
+lrdecaycycle=8
