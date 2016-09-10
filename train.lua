@@ -33,14 +33,6 @@ function evaDev(mlpin, x, criterionin)
 	return serr/cfwd
 end
 
-function getglinear(inputs,outputs,gatefunction)
-	if gatefunction then
-		return nn.Sequential():add(nn.Linear(inputs,outputs*2)):add(nn.Reshape(2,outputs,true)):add(nn.SplitTable(2)):add(nn.ParallelTable():add(gatefunction):add(nn.Identity())):add(nn.CMulTable())
-	else
-		return nn.Sequential():add(nn.Linear(inputs,outputs*2)):add(nn.Reshape(2,outputs,true)):add(nn.SplitTable(2)):add(nn.CMulTable())
-	end
-end
-
 --[[
 function getresmodel(modelcap,scale)
 	local rtm=nn.ConcatTable()
@@ -130,45 +122,16 @@ else
 	require "sampler"
 end
 
-function getnn()
-	local inputs = sizvec*2;
-	local HUs = inputs;
-	local outputs = 1;
-
-	local id2vec=nn.ParallelTable();
-	id2vec:add(nn.vecLookup(vwvec));
-	id2vec:add(nn.vecLookup(nwvec));
-
-	local inputmod=nn.Sequential();
-	inputmod:add(id2vec);
-	inputmod:add(nn.JoinTable(2));
-
-	local nnmod_p1=nn.Sequential()
-		:add(inputmod)
-		:add(getglinear(inputs, HUs))
-		--:add(nn.Tanh())
-		:add(getglinear(HUs, outputs));
-
-	local prl=nn.ParallelTable();
-	prl:add(nnmod_p1);
-	prl:add(nnmod_p1:clone('weight','bias'));
-
-	local nnmod=nn.Sequential();
-	nnmod:add(prl);
-
-	return nnmod
-end
-
 function train()
 
-	print("design neural networks")
+	print("design neural networks and criterion")
+	require "designn"
 	local nnmod=getnn()
 
 	print(nnmod)
 	nnmod:training()
 
-	print("design criterion")
-	local critmod = nn.MarginRankingCriterion(marguse);
+	local critmod=getcrit()
 
 	print("init train")
 	local epochs=1
@@ -178,7 +141,7 @@ function train()
 	collectgarbage()
 
 	print("start pre train")
-	for tmpi=1,32 do
+	for tmpi=1,warmcycle do
 		for tmpi=1,ieps do
 			input=getsample(batchsize)
 			gradUpdate(nnmod,input,target,critmod,lr)
@@ -198,7 +161,7 @@ function train()
 
 	while true do
 		print("start innercycle:"..icycle)
-		for innercycle=1,256 do
+		for innercycle=1,gtraincycle do
 			for tmpi=1,ieps do
 				local input=getsample(batchsize)
 				gradUpdate(nnmod,input,target,critmod,lr)
@@ -212,7 +175,7 @@ function train()
 			if edevrate<mindeverrate then
 				print("new minimal dev error found,save model")
 				mindeverrate=edevrate
-				saveObject("grs/devnnmod"..storedevmini..".asc",nnmod)
+				saveObject("modrs/devnnmod"..storedevmini..".asc",nnmod)
 				storedevmini=storedevmini+1
 				if storedevmini>csave then
 					storedevmini=1
@@ -224,15 +187,19 @@ function train()
 				aminerr=0
 				if not modsavd then
 					print("new minimal error found,save model")
-					saveObject("grs/nnmod"..storemini..".asc",nnmod)
+					saveObject("modrs/nnmod"..storemini..".asc",nnmod)
 					storemini=storemini+1
 					if storemini>csave then
 						storemini=1
 					end
 				end
 			else
-				if aminerr>=4 then
+				if aminerr>=expdecaycycle then
 					aminerr=0
+					if lrdecayepochs>lrdecaycycle then
+						modlr=lr
+						lrdecayepochs=1
+					end
 					lrdecayepochs=lrdecayepochs+1
 					lr=modlr/(lrdecayepochs)
 				end
@@ -243,22 +210,22 @@ function train()
 		end
 
 		print("save neural network trained")
-		saveObject("grs/nnmod.asc",nnmod)
+		saveObject("modrs/nnmod.asc",nnmod)
 
 		print("save criterion history trained")
 		local critensor=torch.Tensor(crithis)
-		saveObject("grs/crit.asc",critensor)
+		saveObject("modrs/crit.asc",critensor)
 		local critdev=torch.Tensor(cridev)
-		saveObject("grs/critdev.asc",critdev)
+		saveObject("modrs/critdev.asc",critdev)
 
 		print("plot and save criterion")
 		gnuplot.plot(critensor)
-		gnuplot.figprint("grs/crit.png")
-		gnuplot.figprint("grs/crit.eps")
+		gnuplot.figprint("modrs/crit.png")
+		gnuplot.figprint("modrs/crit.eps")
 		gnuplot.plotflush()
 		gnuplot.plot(critdev)
-		gnuplot.figprint("grs/critdev.png")
-		gnuplot.figprint("grs/critdev.eps")
+		gnuplot.figprint("modrs/critdev.png")
+		gnuplot.figprint("modrs/critdev.eps")
 		gnuplot.plotflush()
 
 		critensor=torch.Tensor()
