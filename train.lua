@@ -33,49 +33,6 @@ function evaDev(mlpin, x, criterionin)
 	return serr/cfwd
 end
 
---[[
-function getresmodel(modelcap,scale)
-	local rtm=nn.ConcatTable()
-	rtm:add(modelcap)
-	if not scale or scale==1 then
-		rtm:add(nn.Identity())
-	elseif type(scale)=='number' then
-		rtm:add(nn.Sequential():add(nn.Identity()):add(nn.MulConstant(scale,true)))
-	else
-		rtm:add(nn.Sequential():add(nn.Identity()):add(scale))
-	end
-	return nn.Sequential():add(rtm):add(nn.CAddTable())
-end
-
-function getmaxout(inputs,outputs,nlinear)
-	local ncyc=nlinear or 2
-	return nn.Sequential():add(nn.Linear(inputs,outputs*ncyc)):add(nn.Reshape(ncyc,outputs,true)):add(nn.Max(2))
-end
-
-function graphmodule(module_graph)
-	local input=nn.Identity()()
-	local output=module_graph(input)
-	return nn.gModule({input},{output})
-end
-
-function loadfbdseq(fname)
-	local file=io.open(fname)
-	local num=file:read("*n")
-	local rs={}
-	while num do
-		local tmpt={}
-		local ind=file:read("*n")
-		for i=1,num-1 do
-			local vi=file:read("*n")
-			tmpt[vi]=1
-		end
-		rs[ind]=tmpt
-		num=file:read("*n")
-	end
-	file:close()
-	return rs
-end]]
-
 function inirand(cyc)
 	cyc=cyc or 8
 	for i=1,cyc do
@@ -111,7 +68,6 @@ mindeverrate=minerrate
 
 print("load packages")
 require "nn"
---require "nngraph"
 require "dpnn"
 require "vecLookup"
 require "gnuplot"
