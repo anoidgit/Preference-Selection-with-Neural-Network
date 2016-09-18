@@ -13,24 +13,35 @@ function gradUpdate(mlpin, x, y, criterionin, learningRate)
 	mlpin:maxParamNorm(-1)
 end
 
-function evaDev(mlpin, x, criterionin)
+function evaDev(mlpin, x)
 	mlpin:evaluate()
 	local ind=1
-	local serr=0
-	local eind=#x
-	local cfwd=1
+	local eind=x[1]:size(1)
 	local comv
+	local rs=nil
 	while ind+batchsize<eind do
 		comv=x[1]:narrow(1,ind,batchsize)
-		serr=serr+criterionin:forward(mlpin:forward({{comv,x[2]:narrow(1,ind,batchsize)},{comv,x[3]:narrow(1,ind,batchsize)}}), target)
+		local brs=mlpin:forward({{comv,x[2]:narrow(1,ind,batchsize)},{comv,x[3]:narrow(1,ind,batchsize)}})
+		if rs then
+			rs[1]:cat(brs[1],1)
+			rs[2]:cat(brs[2],1)
+		else
+			rs=brs
+		end
 		ind=ind+batchsize
-		cfwd=cfwd+1
 	end
 	local exlen=eind-ind+1
 	comv=x[1]:narrow(1,ind,exlen)
-	serr=serr+criterionin:forward(mlpin:forward({{comv,x[2]:narrow(1,ind,exlen)},{comv,x[3]:narrow(1,ind,exlen)}}), torch.Tensor(exlen):fill(1))
+	local brs=mlpin:forward({{comv,x[2]:narrow(1,ind,exlen)},{comv,x[3]:narrow(1,ind,exlen)}})
+	if rs then
+		rs[1]:cat(brs[1],1)
+		rs[2]:cat(brs[2],1)
+	else
+		rs=brs
+	end
+	local frs=torch.gt(rs[2]-rs[1],0)
 	mlpin:training()
-	return serr/cfwd
+	return torch.sum(frs)/frs:size(1)
 end
 
 function inirand(cyc)
@@ -59,8 +70,8 @@ target=torch.Tensor(batchsize):fill(1)
 sumErr=0
 crithis={}
 cridev={}
+critest={}
 erate=0
-edevrate=0
 storemini=1
 storedevmini=1
 minerrate=marguse
@@ -93,7 +104,7 @@ function train()
 	local epochs=1
 	local lr=modlr
 	inirand()
-	print("Init model Dev:"..evaDev(nnmod,devin,critmod))
+	print("Init model Dev:"..evaDev(nnmod,devin))
 	collectgarbage()
 
 	print("start pre train")
@@ -124,9 +135,11 @@ function train()
 			end
 			local erate=sumErr/ieps
 			table.insert(crithis,erate)
-			local edevrate=evaDev(nnmod,devin,critmod)
+			local edevrate=evaDev(nnmod,devin)
+			local etestrate=evaDev(nnmod,testin)
 			table.insert(cridev,edevrate)
-			print("epoch:"..tostring(epochs)..",lr:"..lr..",Tra:"..erate..",Dev:"..edevrate)
+			table.insert(critest,etestrate)
+			print("epoch:"..tostring(epochs)..",lr:"..lr..",Tra:"..erate..",Dev:"..edevrate..",Test:"..etestrate)
 			local modsavd=false
 			if edevrate<mindeverrate then
 				print("new minimal dev error found,save model")

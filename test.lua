@@ -10,8 +10,8 @@ function eva(mlpin, x)
 		comv=x[1]:narrow(1,ind,batchsize)
 		local brs=mlpin:forward({{comv,x[2]:narrow(1,ind,batchsize)},{comv,x[3]:narrow(1,ind,batchsize)}})
 		if rs then
-			rs[1]=torch.cat(rs[1],brs[1],1)
-			rs[2]=torch.cat(rs[2],brs[2],1)
+			rs[1]:cat(brs[1],1)
+			rs[2]:cat(brs[2],1)
 		else
 			rs=brs
 		end
@@ -21,8 +21,8 @@ function eva(mlpin, x)
 	comv=x[1]:narrow(1,ind,exlen)
 	local brs=mlpin:forward({{comv,x[2]:narrow(1,ind,exlen)},{comv,x[3]:narrow(1,ind,exlen)}})
 	if rs then
-		rs[1]=torch.cat(rs[1],brs[1],1)
-		rs[2]=torch.cat(rs[2],brs[2],1)
+		rs[1]:cat(brs[1],1)
+		rs[2]:cat(brs[2],1)
 	else
 		rs=brs
 	end
@@ -52,15 +52,18 @@ end
 
 require "nn"
 require "vecLookup"
+require "PartialNN"
 
 batchsize=8192
 
-function grs()
-	local devin=loadDev('../datasrc/testeg.asc')
-	local nnmod=loadObject('devnnmod.asc')
+function grs(nnmod,ftest)
+	local devin=loadDev(ftest)
 	local rst=eva(nnmod,devin)
 	local frs=torch.gt(rst[1]-rst[2],0)
 	return torch.sum(frs)/frs:size(1)
 end
 
-print(grs())
+nnmod=loadObject('devnnmod.asc')
+print(grs(nnmod,'../datasrc/testeg.asc'))
+print(grs(nnmod,'../datasrc/deveg.asc'))
+

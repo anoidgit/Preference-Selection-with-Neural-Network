@@ -2,8 +2,8 @@ require "PartialNN"
 
 function getnn()
 	local inputs = sizvec*2;
-	local RHUs = inputs;
-	local HUs = math.floor(RHUs*1.5);
+	local RHUs = inputs-32;
+	local HUs = inputs;
 	local outputs = 1;
 
 	local id2vec=nn.ParallelTable();
