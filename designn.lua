@@ -1,5 +1,5 @@
 --require "snn"
---require "mnn"
-require "clnn"
+require "mnn"
+--require "clnn"
 
 require "gcrit"

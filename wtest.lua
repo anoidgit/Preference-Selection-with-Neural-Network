@@ -54,14 +54,16 @@ require "PartialNN"
 
 batchsize=8192
 
-function grs(nnmod,ftest)
+function grs(nnmod,ftest,weight)
 	local devin=loadDev(ftest)
 	local rst=eva(nnmod,devin)
-	local frs=torch.gt(rst[1]-rst[2],0)
-	return torch.sum(frs)/frs:size(1)
+	local frs=torch.gt(rst[1]-rst[2],0):int():cmul(weight)
+	return torch.sum(frs)/torch.sum(weight)
 end
 
 nnmod=loadObject('devnnmod.asc')
-print(grs(nnmod,'../datasrc/testeg.asc'))
-print(grs(nnmod,'../datasrc/deveg.asc'))
+tw=loadObject('../datasrc/tw.asc')
+dw=loadObject('../datasrc/dw.asc')
+print(grs(nnmod,'../datasrc/testeg.asc',tw))
+print(grs(nnmod,'../datasrc/deveg.asc',dw))
 

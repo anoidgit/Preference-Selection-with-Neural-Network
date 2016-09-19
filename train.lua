@@ -23,10 +23,9 @@ function evaDev(mlpin, x)
 		comv=x[1]:narrow(1,ind,batchsize)
 		local brs=mlpin:forward({{comv,x[2]:narrow(1,ind,batchsize)},{comv,x[3]:narrow(1,ind,batchsize)}})
 		if rs then
-			rs[1]:cat(brs[1],1)
-			rs[2]:cat(brs[2],1)
+			rs={rs[1]:cat(brs[1],1),rs[2]:cat(brs[2],1)}
 		else
-			rs=brs
+			rs={brs[1]:clone(),brs[2]:clone()}
 		end
 		ind=ind+batchsize
 	end
@@ -34,10 +33,9 @@ function evaDev(mlpin, x)
 	comv=x[1]:narrow(1,ind,exlen)
 	local brs=mlpin:forward({{comv,x[2]:narrow(1,ind,exlen)},{comv,x[3]:narrow(1,ind,exlen)}})
 	if rs then
-		rs[1]:cat(brs[1],1)
-		rs[2]:cat(brs[2],1)
+		rs={rs[1]:cat(brs[1],1),rs[2]:cat(brs[2],1)}
 	else
-		rs=brs
+		rs={brs[1]:clone(),brs[2]:clone()}
 	end
 	local frs=torch.gt(rs[2]-rs[1],0)
 	mlpin:training()
