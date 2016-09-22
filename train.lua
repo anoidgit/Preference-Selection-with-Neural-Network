@@ -8,7 +8,7 @@ function gradUpdate(mlpin, x, y, criterionin, learningRate)
 	local gradCriterion=criterionin:backward(pred, y)
 	mlpin:zeroGradParameters()
 	mlpin:backward(x, gradCriterion)
-	mlpin:updateGradParameters(0.875)
+	mlpin:updateGradParameters(0.9)
 	mlpin:updateParameters(learningRate)
 	mlpin:maxParamNorm(-1)
 end
@@ -72,8 +72,10 @@ critest={}
 erate=0
 storemini=1
 storedevmini=1
+storetestmini=1
 minerrate=marguse
 mindeverrate=minerrate
+mintesterrate=minerrate
 
 print("load packages")
 require "nn"
@@ -139,15 +141,27 @@ function train()
 			table.insert(critest,etestrate)
 			print("epoch:"..tostring(epochs)..",lr:"..lr..",Tra:"..erate..",Dev:"..edevrate..",Test:"..etestrate)
 			local modsavd=false
-			if edevrate<mindeverrate then
-				print("new minimal dev error found,save model")
-				mindeverrate=edevrate
-				saveObject("modrs/devnnmod"..storedevmini..".asc",nnmod)
-				storedevmini=storedevmini+1
-				if storedevmini>csave then
-					storedevmini=1
+			if etestrate<mintesterrate then
+				print("new minimal test error found,save model")
+				mintesterrate=etestrate
+				saveObject("modrs/testnnmod"..storetestmini..".asc",nnmod)
+				storetestmini=storetestmini+1
+				if storetestmini>csave then
+					storetestmini=1
 				end
 				modsavd=true
+			end
+			if edevrate<mindeverrate then
+				if not modsavd then
+					print("new minimal dev error found,save model")
+					mindeverrate=edevrate
+					saveObject("modrs/devnnmod"..storedevmini..".asc",nnmod)
+					storedevmini=storedevmini+1
+					if storedevmini>csave then
+						storedevmini=1
+					end
+					modsavd=true
+				end
 			end
 			if erate<minerrate then
 				minerrate=erate
@@ -198,7 +212,7 @@ function train()
 		critensor=torch.Tensor()
 		critdev=torch.Tensor()
 
-		print("task finished!Minimal error rate:"..minerrate.."	"..mindeverrate)
+		print("task finished!Minimal error rate:"..minerrate.."	"..mindeverrate.."	"..mintesterrate)
 
 		print("wait for test, neural network saved at nnmod*.asc")
 
