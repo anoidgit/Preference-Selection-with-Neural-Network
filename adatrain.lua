@@ -1,7 +1,7 @@
 print("load settings")
 require"aconf"
 
-runid = runid.."_Momentum_nngraph:"..tostring(usegraph).."_resetOptim:"..tostring(resetOptim).."_window:"..tostring(window).."_rate:"..tostring(rate).."_"..vsize.."_"..hsize.."_"..tostring(pdrop).."_"..modlr.."_"..earlystop.."_"..extra_header
+runid = runid.."_Adam_nngraph:"..tostring(usegraph).."_resetOptim:"..tostring(resetOptim).."_window:"..tostring(window).."_rate:"..tostring(rate).."_"..vsize.."_"..hsize.."_"..tostring(pdrop).."_"..modlr.."_"..earlystop.."_"..extra_header
 
 require "utils.Logger"
 require "paths"
@@ -20,20 +20,23 @@ end
 logger:log("set default tensor type to float")
 torch.setdefaulttensortype('torch.FloatTensor')
 
-logger:log("Use momentum:0.9")
+logger:log("Use Adam")
 
-function gradUpdate(mlpin, x, y, criterionin, lr)
+function feval()
+	return _inner_err, _inner_gradParams
+end
+
+function gradUpdate(mlpin, x, y, criterionin, lr, optm)
+
+	_inner_gradParams:zero()
 
 	local pred=mlpin:forward(x)
-	local _inner_err=criterionin:forward(pred, y)
+	_inner_err=criterionin:forward(pred, y)
 	sumErr=sumErr+_inner_err
 	local gradCriterion=criterionin:backward(pred, y)
-	mlpin:zeroGradParameters()
 	mlpin:backward(x, gradCriterion)
 
-	mlpin:updateGradParameters(0.9)
-
-	mlpin:updateParameters(lr)
+	optm(feval, _inner_params, {learningRate = lr})
 
 	--mlpin:maxParamNorm(2)
 
@@ -51,15 +54,6 @@ function evaDev(mlpin, criterionin, devdata)
 	end
 	mlpin:training()
 	return serr/nd
-end
-
-function clearMomentum(modin)
-	modin:apply(function(m)
-		if m.momGradParams then
-			m.momGradParams = nil
-		end
-	end)
-	collectgarbage()
 end
 
 --[[function evaDev(mlpin, criterionin, devdata)
@@ -85,7 +79,6 @@ function saveObject(fname,objWrt)
 	if torch.isTensor(objWrt) then
 		torch.save(fname,objWrt)
 	else
-		clearMomentum(objWrt)
 		objWrt:clearState()
 		torch.save(fname,nn.Serial(objWrt):mediumSerial())
 	end
@@ -123,6 +116,10 @@ function train()
 	local savedir="modrs/"..runid.."/"
 	paths.mkdir(savedir)
 
+	logger:log("load optim")
+	require "getoptim"
+	local optmethod=getoptim()
+
 	logger:log("load data")
 	local traind, devd = unpack(require "dloader")
 
@@ -153,13 +150,15 @@ function train()
 	minvaliderrate=evaDev(nnmod,critmod,devd)
 	logger:log("Init model Dev:"..minvaliderrate)
 
+	_inner_params, _inner_gradParams=nnmod:getParameters()
+
 	collectgarbage()
 
 	logger:log("start pre train")
 	for tmpi=1,warmcycle do
 		for tmpj=1,ieps do
 			for i, id, td in traind:subiter() do
-				gradUpdate(nnmod, id, td, critmod, lr)
+				gradUpdate(nnmod, id, td, critmod, lr, optmethod)
 				xlua.progress(i, ntrain)
 			end
 		end
@@ -197,7 +196,7 @@ function train()
 		for innercycle=1,gtraincycle do
 			for tmpi=1,ieps do
 				for i, id, td in traind:subiter() do
-					gradUpdate(nnmod, id, td, critmod, lr)
+					gradUpdate(nnmod, id, td, critmod, lr, optmethod)
 					xlua.progress(i, ntrain)
 				end
 			end
@@ -261,8 +260,9 @@ function train()
 					lrdecayepochs=lrdecayepochs+1
 					lr=modlr/(lrdecayepochs)
 					if resetOptim then
-						logger:log("Reset Momentum parameters")
-						clearMomentum(nnmod)
+						logger:log("Reset Optimizer")
+						optmethod=getoptim()
+						collectgarbage()
 					end
 				end
 				aminerr=aminerr+1

@@ -1,32 +1,19 @@
-function loadObject(fname)
-	local file=torch.DiskFile(fname)
-	local objRd=file:readObject()
-	file:close()
-	return objRd
+require "hdf5"
+require "dset"
+require "utils.TrainDataContainer"
+require "utils.ValidDataContainer"
+require "utils.GTrainDataContainer"
+require "utils.GValidDataContainer"
+local traindata = hdf5.open("datasrc/train.h5", "r")
+local validata = hdf5.open("datasrc/valid.h5", "r")
+
+if logger then
+	logger:log("verbs:"..verbs..", nouns:"..nouns)
+	logger:log("batches:"..ntrain.."(train), "..nvalid.."(valid)")
 end
 
-function loadDev(fposi)
-	local pm=loadObject(fposi)
-	return {pm:select(2,1),pm:select(2,2),pm:select(2,3)}
-end
-
-function loadTrain(ftrain)
-	return loadObject(ftrain)
-end
-
-vwvec=loadObject('datasrc/vrvec.asc')
-nwvec=loadObject('datasrc/nrvec.asc')
-sizvec=nwvec:size(2)
-
-mword=loadTrain('datasrc/traineg.asc')
-
-devin=loadDev('datasrc/deveg.asc')
-testin=loadDev('datasrc/testeg.asc')
-
-nsam=mword:size(1)
-
-if usernd then
-	require "fbdloader"
-	fbdset=loadfbdseq('datasrc/fbd.txt')
-	cnoun=nwvec:size(1)-1
+if usegraph then
+	return {GTrainDataContainer(traindata, ntrain, nouns, window, rate), GValidDataContainer(validata, nvalid)}
+else
+	return {TrainDataContainer(traindata, ntrain, nouns, window, rate), ValidDataContainer(validata, nvalid)}
 end
