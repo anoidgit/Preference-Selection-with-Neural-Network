@@ -18,8 +18,10 @@ end
 
 function getnnn()
 
-	require "model.mnn"
-	require "model.gmnn"
+	require "model.snn"
+	require "model.gsnn"
+	--require "model.mnn"
+	--require "model.gmnn"
 	if usegraph then
 		return getusegnn(vsize, hsize, maxn)
 	else
@@ -58,4 +60,18 @@ end
 
 function normvec(modin)
 	setnormvec(modin,true)
+end
+
+function ldvvec()
+	local embf = hdf5.open("datasrc/v.h5", "r")
+	local rs = embf:read("emb"):all():float()
+	embf:close()
+	return rs
+end
+
+function ldnvec()
+	local embf = hdf5.open("datasrc/n.h5", "r")
+	local rs = embf:read("emb"):all():float()
+	embf:close()
+	return rs
 end

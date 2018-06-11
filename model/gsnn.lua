@@ -11,8 +11,19 @@ local function initEmb(nc, vsize)
 end
 
 function getusegnn(vsize, hsize)
-	local vvec = initEmb(verbs, vsize)
-	local nvec = initEmb(nouns, vsize)
+	local vvec = nil
+	local nvec = nil
+	if pre_emb then
+		vvec = ldvvec()
+		nvec = ldnvec()
+		if logger then
+			logger:log("Pretrained Embedding Init:"..vvec:size(1)..", "..vvec:size(2))
+			logger:log("Pretrained Embedding Init:"..nvec:size(1)..", "..nvec:size(2))
+		end
+	else
+		vvec = initEmb(verbs, vsize)
+		nvec = initEmb(nouns, vsize)
+	end
 	if logger then
 		logger:log("Arch:feed-forward, Layers:2")
 		logger:log("Build with nngraph")

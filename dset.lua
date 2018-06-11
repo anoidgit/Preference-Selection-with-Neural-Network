@@ -1,4 +1,4 @@
-verbs=12849
-nouns=29229
-ntrain=21557
-nvalid=4
+verbs=5783
+nouns=57481
+ntrain=27474
+nvalid=10

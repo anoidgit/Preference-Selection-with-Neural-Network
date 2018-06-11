@@ -7,7 +7,7 @@ export rsdir=modrs
 export ef=$wdir/exp.txt
 
 mkdir -p $wdir
-pypy scripts/expand.py $srcf $ef
+pypy scripts/addhead.py $srcf $ef
 
 export VECTOR_SIZE=200
 export VOCAB_MIN_COUNT=1

@@ -25,7 +25,7 @@ export MEMORY=8.0
 
 echo "$ vocab_count -min-count $VOCAB_MIN_COUNT -verbose $VERBOSE < $ef > $VOCAB_FILE"
 vocab_count -min-count $VOCAB_MIN_COUNT -verbose $VERBOSE < $ef > $VOCAB_FILE
-pypy scripts/merge.py $srcd/ cache/valid.txt
+pypy scripts/mergen.py $srcd/ cache/valid.txt
 pypy scripts/mapgvalid.py cache/valid.txt $wdir/valid.txt $VOCAB_FILE $VOCAB_MIN_COUNT
 echo "$ cooccur -memory $MEMORY -vocab-file $VOCAB_FILE -verbose $VERBOSE -window-size $WINDOW_SIZE < $ef > $COOCCURRENCE_FILE"
 cooccur -memory $MEMORY -vocab-file $VOCAB_FILE -verbose $VERBOSE -window-size $WINDOW_SIZE < $ef > $COOCCURRENCE_FILE

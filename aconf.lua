@@ -2,12 +2,14 @@ starterate=math.huge--warning:only used as init erate, not asigned to criterion
 
 logd="logs"
 
-runid="180120_maxout"
+runid="180412_nyt_snn"
 
-extra_header="batchsize:1024_unk:1_minwordfreq:1_mincocfreq:1_cooccur.weight:1_shfc:64_gpu:GTX1080.on_pretrained.embedding:0"
+extra_header="batchsize:1024_unk:1_minwordfreq:1_mincocfreq:1_cooccur.weight:1_shfc:64_gpu:GTX1080.on"
 
-vsize=64
-hsize=64
+pre_emb=true--use pretrained embedding
+
+vsize=200
+hsize=200
 maxn=2
 pdrop=nil
 
@@ -21,7 +23,7 @@ gtraincycle=64
 
 modlr=1/1024
 
-earlystop=64
+earlystop=32
 
 csave=3
 

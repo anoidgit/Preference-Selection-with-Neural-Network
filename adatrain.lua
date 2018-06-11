@@ -1,7 +1,7 @@
 print("load settings")
 require"aconf"
 
-runid = runid.."_Adam_nngraph:"..tostring(usegraph).."_resetOptim:"..tostring(resetOptim).."_window:"..tostring(window).."_rate:"..tostring(rate).."_"..vsize.."_"..hsize.."_"..tostring(pdrop).."_"..modlr.."_"..earlystop.."_"..extra_header
+runid = runid.."_Adam_nngraph:"..tostring(usegraph).."_warmcycle:"..tostring(warmcycle).."_resetOptim:"..tostring(resetOptim).."_window:"..tostring(window).."_rate:"..tostring(rate).."_"..vsize.."_"..hsize.."_"..tostring(pdrop).."_"..modlr.."_"..earlystop.."_pretrained.embedding:"..tostring(pre_emb).."_"..extra_header
 
 require "utils.Logger"
 require "paths"
